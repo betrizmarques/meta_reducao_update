@@ -14,7 +14,7 @@
 require(roadtrafficdeaths)
 require(tidyverse)
 
-# Carregando bases de dados para a limpeza.
+# Carregando bases de dados para a a preparação da base principal.
 
 mortes_transito <- rtdeaths #base das mortes de trânsito
 
@@ -23,6 +23,8 @@ frota_municipios <- readxl::read_xlsx('data/FrotapormunicipioetipoDezembro2024.x
 
 municipios_metas <- read.csv('data/municipios_metas.csv') #base das metas estabelecidas para cada município
 
+populacao_municipio <- readxl::read_excel('data/POP_TCU_2023_Municipios_POP2022_Malha2023.xls', 
+                                          skip = 1)# base do numero de habitantes no municipio
 ufs <- tibble::tibble( 
   sigla = c("AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA",
             "MG", "MS", "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN",
@@ -74,32 +76,18 @@ base_principal <- base_principal %>% # substituindo os NA's do numero de mortes 
   mutate(n_mortes_23 = replace_na(n_mortes_23, 0),
          var_23 = n_mortes_23-media_mortes, 
          reducao = var_23/media_mortes,
-         meta_atingida = ((perc_reducao)/(var_perc)*100))
+         meta_atingida = ((reducao)/(var_perc)*100))
+
+old_names <- names(populacao_municipio)
+new_names <- tolower(old_names)
+colnames(populacao_municipio) <- new_names
+
+populacao_municipio <- populacao_municipio %>% 
+  rename(populacao_23 = `população apurada ibge 
+- censo demográfico 2022 e malha territorial 2023 -`,
+         nome_do_municipio = `nome do município`) %>% 
+  select(-`cod. uf`,-`cod. munic`)
+
+base_principal <- left_join(base_principal, populacao_municipio, by = c('uf', 'nome_do_municipio')) 
 
 write.csv(base_principal, file = "data/base_principal.csv") #salvando a base com todas as informações necessárias para a análise.
-
-# agora que já temos a base principal, podemos fazer alguns cálculos gerais para o Brasil.
-
-mortes_br <- sum(base_principal$media_mortes) #soma a média de mortes de 2018-2020 no Brasil.
-meta_br <- sum(base_principal$meta_round) #calcula a meta de número de mortes para o Brasil.
-mortes_br_23 <- sum(base_principal$n_mortes_23) #soma todas as mortes que ocorreram  em 2023.
-var_br_23 <- mortes_br_23-mortes_br #calcula a variação do número de mortes.
-var_perc_br_23 <- var_br_23 / mortes_br# calcula o percentual da variação em relação as mortes.
-
-agrupados_por_uf <- base_principal %>% 
-  group_by(estado_nome) %>%
-  summarise(n_mortes_23 = sum(n_mortes_23), media_mortes = sum(media_mortes), meta = sum(meta)) %>% 
-  mutate(var_23 = n_mortes_23-media_mortes, perc_reducao = var_23/media_mortes, meta_perc = (meta-media_mortes)/media_mortes)
-
-agrupados_por_porte <- base_principal %>% 
-  group_by(porte) %>% 
-  summarise(n_mortes_23 = sum(n_mortes_23), media_mortes = sum(media_mortes)) %>% 
-  mutate(var_23 = n_mortes_23-media_mortes, perc_reducao = var_23/media_mortes, perc = perc_reducao*100)
-
-base_principal <- base_principal %>% 
-  mutate(meta_atingida = ((perc_reducao)/(var_perc)*100))
-
-base_especifica <- base_principal %>% 
-  select(estado_nome, nome_do_municipio, porte, media_mortes, meta_round, n_mortes_23, var_perc, perc_reducao, meta_atingida)
-
-
