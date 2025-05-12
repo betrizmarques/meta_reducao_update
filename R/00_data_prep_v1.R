@@ -1,12 +1,11 @@
 ###----------------------------------------------------
-###--- Cumprimento das Metas de Redução de Mortes -----
-#--- no Trânsito de Municípios Brasileiros ------------
+###---- Cumprimento das Metas de Redução de Mortes ----
+###------ no Trânsito de Municípios Brasileiros -------
 ###----------------------------------------------------
 ### O objetivo principal deste projeto de pesquisa é observar o cumprimento das metas
 ### de redução de mortes no trânsito dos municípios brasileiros estabelecidas em 2020, 
 ### por uma pesquisa que utilizou a técnica de benchmarking para estabelecer metas
 ### para municípios com características semelhantes.
-
 
 ### Por: A. Beatriz Marques, Graduanda de Estatística e Ciência de Dados - UFPR
 ### Dr. Jorge Tiago Bastos - Observatório Nacional de Segurança Viária
