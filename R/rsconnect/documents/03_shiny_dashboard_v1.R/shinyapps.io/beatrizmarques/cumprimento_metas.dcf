@@ -1,0 +1,13 @@
+name: cumprimento_metas
+title: cumprimento_metas
+username: beatrizmarques
+account: beatrizmarques
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 14762122
+bundleId: 10289184
+url: https://beatrizmarques.shinyapps.io/cumprimento_metas/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: 00_data_prep_v1.R|01_exploratory_data_analysis_v1.R|data/FrotapormunicipioetipoDezembro2024.xlsx|data/mortes.geral.csv|data/municipios_metas.csv|data/POP_TCU_2023_Municipios_POP2022_Malha2023.xls
