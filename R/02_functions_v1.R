@@ -1,18 +1,29 @@
 require(tidyverse)
-base_principal <- read.csv('C:/Users/absil/OneDrive/Documents/UFPR/ONSV/METAS MUNICÍPIOS/meta_reducao_update/data/base_principal.csv')
+base_principal <- read.csv('data/base_principal.csv')
+
+
+atingiram_a_meta <- function(base){
+  numero <- base %>% 
+    filter(meta_atingida >= 100) %>% 
+    nrow()
+  return(numero)
+}
+
 
 #Calcular médias do Brasil.
 calculo_br <- function(base) {
   assign('mortes_br_antigo', sum(base$media_mortes), envir = .GlobalEnv)
   assign("meta_mortes_br", sum(base$meta_round), envir = .GlobalEnv)
-  assign("mortes_br_23", sum(base$n_mortes_23), envir = .GlobalEnv)
-  assign("var_br_23", mortes_br_23 - mortes_br_antigo, envir = .GlobalEnv)
-  assign("reducao_23_br", var_br_23 / mortes_br_antigo, envir = .GlobalEnv)
+  assign("mortes_23_br", sum(base$n_mortes_23), envir = .GlobalEnv)
+  assign("var_23_br", mortes_23_br - mortes_br_antigo, envir = .GlobalEnv)
+  assign("reducao_23_br", var_23_br / mortes_br_antigo, envir = .GlobalEnv)
   assign("meta_reducao_br", (meta_mortes_br - mortes_br_antigo) / mortes_br_antigo, envir = .GlobalEnv)
   assign("n_muncipios_br", nrow(base), envir = .GlobalEnv)
+  assign("atingiram_meta_br", (atingiram_a_meta(base))/nrow(base), envir = .GlobalEnv)
 }
 
 calculo_br(base = base_principal)
+
 filtrar_por_estado <- function(base, uf){
   estado <- base %>% 
     filter(uf == {{uf}})
@@ -21,6 +32,7 @@ filtrar_por_estado <- function(base, uf){
   assign(nome_variavel, estado, envir = .GlobalEnv)
   
 }
+
 
 #Calcular médias para cada estado.
 calculo_estado <- function(base, estado){
@@ -32,6 +44,7 @@ calculo_estado <- function(base, estado){
   assign(paste0('reducao_23_', tolower(estado)), (sum(base_filtrada$n_mortes_23) - sum(base_filtrada$media_mortes))/sum(base_filtrada$media_mortes), envir = .GlobalEnv)
   assign(paste0('meta_reducao_', tolower(estado)), (sum(base_filtrada$meta) - sum(base_filtrada$media_mortes))/ sum(base_filtrada$media_mortes), envir = .GlobalEnv)
   assign(paste0('n_municipios_', tolower(estado)), nrow(base_filtrada), envir = .GlobalEnv)
+  assign(paste0('atingiram_meta_', tolower(estado)), atingiram_a_meta(base_filtrada)/nrow(base_filtrada), envir = .GlobalEnv)
 }
 
 
@@ -39,7 +52,7 @@ calculo_estado <- function(base, estado){
 filtrar_dados <- function(base){
   dados_filtrados <- 
     base %>% 
-    mutate(meta_percentual = paste0(round(var_perc, 2),'%'),
+    mutate(meta_percentual = paste0(round(var_perc*100, 2),'%'),
            reducao_percentual = paste0(round(reducao*100, 2),'%'),
            media_mortes = round(media_mortes),
            cor = ifelse(meta_atingida >= 0, "red", "green"),
@@ -107,7 +120,7 @@ plot_capitais <- function(municipios, destaque = "SP") {
       geom = "text",
       y = reducao_23_br + 0.10,
       x = 20,
-      label = glue("Aumento\n do Brasil: {label_br}%"),
+      label = glue("Média\n do Brasil: {label_br}%"),
       size = 2,
       color = "red"
     ) +
@@ -120,7 +133,7 @@ plot_capitais <- function(municipios, destaque = "SP") {
       labels = scales::percent_format(accuracy = 1)
     ) +
     labs(
-      y = "Redução (%)",
+      y = "Redução / Aumento (%)",
       x = "Estado",
       fill = NULL
     ) +
@@ -191,7 +204,8 @@ plot_reducao_estados <- function(municipios, destaque = "SP") {
 
 
 #Função para gerar a aba do Dashboard de cada estado.
-gerar_tab_estado <- function(nome_aba, media_antigo, media_23, n_municipios, 
+gerar_tab_estado <- function(nome_aba, media_antigo, media_23, atingiram_meta,
+                             n_municipios, meta_reducao, reducao_23,
                              scatterplot, barras_estados, tabela, barras_capitais){
   tabItem(
     tabName = nome_aba,
@@ -203,18 +217,30 @@ gerar_tab_estado <- function(nome_aba, media_antigo, media_23, n_municipios,
           width = 12,
           title = "Média de Mortes no Trânsito (2018-2020)",
           value = round(media_antigo, digits = 2),
-          icon = icon("car-crash"),
-          color = "gray-dark"
+          icon = tags$i(class = "fas fa-car-crash", 
+                        style = "background-color: white; color: red; padding: 12px; border-radius: 5px;"),
+          color = "white"  
         )
       ),
       column(
         width = 4,
         infoBox(
           width = 12,
-          title = "Número de Mortes no Trânsito (2023)",
+          title = "Mortes no Trânsito (2023)",
           value = round(media_23, digits = 2),
-          icon = icon("car-crash"),
-          color = "gray-dark"
+          icon = tags$i(class = "fas fa-car-crash", 
+                        style = "background-color: white; color: red; padding: 12px; border-radius: 5px;"),
+          color = "white"  
+        )
+      ),
+      column(
+        width = 4,
+        infoBox(
+          width = 12,
+          title = "% de Municípios que Atingiram a Meta",
+          value = paste0(round(atingiram_meta*100, digits = 2), "%"),
+          icon = icon("location-dot"),
+          color = "white"
         )
       ),
       column(
@@ -224,7 +250,27 @@ gerar_tab_estado <- function(nome_aba, media_antigo, media_23, n_municipios,
           title = "Total de Municípios",
           value = n_municipios,
           icon = icon("location-dot"),
-          color = "gray-dark"
+          color = "white"
+        )
+      ),
+      column(
+        width = 4,
+        infoBox(
+          width = 12,
+          title = "Meta de Redução de Mortes (%)",
+          value = paste0(round(meta_reducao*100, digits = 2),"%"),
+          icon = icon("chart-line"),
+          color = "white"
+        )
+      ),
+      column(
+        width = 4,
+        infoBox(
+          width = 12,
+          title = "Redução / Aumento de Mortes (%)",
+          value = paste0(round(reducao_23*100, digits = 2), "%"),
+          icon = icon("chart-bar"),
+          color = "white"
         )
       )
     ),
@@ -266,37 +312,13 @@ gerar_tab_estado <- function(nome_aba, media_antigo, media_23, n_municipios,
 }
 
 #Tabela de Redução ou aumento.
-tabela_reducao_aumento <- function(dados_filtrados) {
-  dados_ordenados <- dados_filtrados %>%
-    arrange(Prioridade) 
-  
-  dados_ordenados %>%
-    gt() %>%
-    cols_label(
-      `Redução/Aumento` = html("<span style='color:#228B22'>Redução</span>/<span style='color:#B22222'>Aumento</span>")
-    ) %>%
-    tab_style(
-      style = list(cell_text(color = "#228B22")),
-      locations = cells_body(
-        columns = 'Redução/Aumento',
-        rows = as.numeric(str_replace_all(`Redução/Aumento`, "%", "")) < 0
-      )
-    ) %>%
-    tab_style(
-      style = list(cell_text(color = "#B22222")),
-      locations = cells_body(
-        columns = 'Redução/Aumento',
-        rows = as.numeric(str_replace_all(`Redução/Aumento`, "%", "")) > 0
-      )
-    )
-}
 
 
 
 base_graficos <- function(base){
   base %>% 
     mutate(
-      cor = ifelse(meta_atingida >= 0, "red", "green"),
+      cor = ifelse(meta_atingida >= 0, "green", "red"),
       meta_atingida_limite = case_when(
         meta_atingida > 100 ~ 100,
         meta_atingida < -100 ~ -100,
@@ -306,10 +328,10 @@ base_graficos <- function(base){
       tooltip = paste0(
         "Município: ", nome_do_municipio, "<br>",
         "UF: ", uf, "<br>",
-        "Meta de Redução: ", round(var_perc, 1), "%<br>",
-        tipo, round(reducao, 1), "%<br>",
+        "Meta de Redução: ", round(var_perc*100, 1), "%<br>",
+        tipo, round(reducao*100, 1), "%<br>",
         "Meta Atingida: ", round(meta_atingida_limite, 1), "%", "<br>",
-        'Média de Mortes (2018- 2020): ', round(media_mortes), "<br>",
+        'Média de Mortes (2018-2020): ', round(media_mortes), "<br>",
         'Número de Mortes (2023): ', n_mortes_23
       )
     )
@@ -374,7 +396,7 @@ grafico_meta_atingida <- function(base_graficos) {
     type = 'scatter',
     mode = 'markers',
     color = ~cor,
-    colors = c("#E74C3C", "#2ECC71"),
+    colors = c("red" = "#E74C3C", "green" = "#2ECC71"),
     text = ~tooltip,
     hoverinfo = "text"
   ) %>%
