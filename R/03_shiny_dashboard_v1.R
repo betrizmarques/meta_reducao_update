@@ -117,9 +117,9 @@ ui <- dashboardPage(
         
         tabName = "inicio",
         jumbotron(
-          title = "Metas de Redução de Mortes no Trânsito dos Municípios Brasileiros",
+          title = "Cumprimento das Metas de Redução de Mortes no Trânsito dos Municípios Brasileiros até 2023.",
           status = "primary",
-          lead = "Visualização e análise do cumprimento das metas estabelecidas para os municípios brasileiros em 2020.",
+          lead = "Visualização e análise do cumprimento das metas estabelecidas para os municípios brasileiros pelo PNATRANS em 2021.",
           btnName = "Relatório",
           href = "https://github.com/pabsantos/roadtrafficdeaths",
           "Você pode verificar o relatório deste DashBoard, acessando o link abaixo:"
@@ -131,27 +131,37 @@ ui <- dashboardPage(
           userBox(
             collapsible = T,
             title = userDescription(
-              title = "",
-              subtitle = "Observatório Nacional de Segurança Viária",
+              title = "Observatório Nacional de Segurança Viária",
+              subtitle = "",
               image = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTiUGcruSnnUaYj84CofuRj9oRE1ZX7K-JpcQ&s",
               type = 1
             ), 
             status = "warning",
             HTML("<br>"),
-            "O OBSERVATÓRIO Nacional de Segurança Viária é uma instituição social sem fins lucrativos,
-            dedicada a desenvolver ações que contribuam efetivamente para a redução dos elevados índices 
-            de vítimas no trânsito brasileiro. Com esse objetivo, um grupo de profissionais multidisciplinares 
-            decidiu reunir todo o seu conhecimento, experiência e motivação em um único projeto grandioso e desafiador:
-              mobilizar a sociedade em prol de um trânsito mais seguro."
+            "O Observatório Nacional de Segurança Viária é uma instituição social
+            sem fins lucrativos, dedicada a desenvolver ações que contribuam efetivamente
+            para a redução dos elevados índices de ocorrências no trânsito brasileiro. Com 
+            esse objetivo, um grupo de profissionais multidisciplinares decidiu reunir todo 
+            o seu conhecimento, experiência e motivação em um único projeto grandioso e desafiador: 
+            mobilizar a sociedade em prol de um trânsito mais seguro."
 
           ),
           box(title = 'Introdução',
               width = 6,
               collapsible = T,
               blockQuote(
-                "Em 2020, o Observatório Nacional de Segurança Viária realizou um estudo que tinha por objetivo estabelecer a criação de metas de redução de mortes no trânsito nos 
-                municípios brasileiros até 2030. O objetivo, agora, é observar e analisar o cumprimento dessas metas até o ano de 
-                2023, visando assim, apontar os munícipios que precisam de um foco maior na redução de mortes no trânsito e analisar quais já atingiram.",
+                
+              
+                
+                "O Plano Nacional de Redução de Mortes e Lesões no Trânsito (PNATRANS), criado pela Lei Federal 
+                nº 13.614/2018, tem como objetivo estabelecer metas de redução da mortalidade no trânsito para os 
+                estados e para o país entre 2019 e 2028. Em 2021, o plano foi revisado, prorrogando o prazo das metas 
+                até 2030 e reformulando seus pilares de atuação. As metas de redução foram definidas para os municípios
+                brasileiros através das técnicas de clusterização e benchmarking. O objetivo, agora, é observar o desempenho
+                de cada município até 2023, atráves da visualização de dados. Para isso, foi criado um Dashboard que contém 
+                todas as informações necessárias para essa análise.",
+                
+                
                 color = "warning"
               )
           )
@@ -263,7 +273,7 @@ server <- function(input, output) {
     
   })
   
-  output$tabela_br <- render_gt({
+  output$tabela_br <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_principal))
   })
   ##
@@ -281,7 +291,7 @@ server <- function(input, output) {
    
   })
 
-  output$tabela_ac <- render_gt({
+  output$tabela_ac <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_ac))
   })
   ##
@@ -299,7 +309,7 @@ server <- function(input, output) {
     
   })
   
-  output$tabela_al <- render_gt({
+  output$tabela_al <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_al))
   })
   ##
@@ -317,7 +327,7 @@ server <- function(input, output) {
     
   })
   
-  output$tabela_ap <- render_gt({
+  output$tabela_ap <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_ap))
   })
 ##
@@ -336,7 +346,7 @@ server <- function(input, output) {
     
   })
   
-  output$tabela_am <- render_gt({
+  output$tabela_am <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_am))
   })
 ##
@@ -355,7 +365,7 @@ server <- function(input, output) {
     
   })
   
-  output$tabela_ba <- render_gt({
+  output$tabela_ba <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_ba))
   })
   
@@ -375,7 +385,7 @@ server <- function(input, output) {
     
   })
   
-  output$tabela_ce <- render_gt({
+  output$tabela_ce <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_ce))
   })
   
@@ -395,7 +405,7 @@ server <- function(input, output) {
     
   })
   
-  output$tabela_df <- render_gt({
+  output$tabela_df <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_df))
   })
   
@@ -415,7 +425,7 @@ server <- function(input, output) {
     plot_capitais(capitais_base_principal, destaque =  "Espírito Santo")
   })
   
-  output$tabela_es <- render_gt({
+  output$tabela_es <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_es))
   })
   
@@ -432,7 +442,7 @@ server <- function(input, output) {
     plot_capitais(capitais_base_principal, destaque =  "Goiás")
   })
   
-  output$tabela_go <- render_gt({
+  output$tabela_go <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_go))
   })
   
@@ -451,7 +461,7 @@ server <- function(input, output) {
     plot_capitais(capitais_base_principal, destaque =  "Goiás")
   })
   
-  output$tabela_go <- render_gt({
+  output$tabela_go <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_go))
   })
   # Goiás
@@ -464,7 +474,7 @@ server <- function(input, output) {
   output$capitais_go <- renderPlotly({
     plot_capitais(capitais_base_principal, destaque = "Goiás")
   })
-  output$tabela_go <- render_gt({
+  output$tabela_go <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_go))
   })
   
@@ -478,7 +488,7 @@ server <- function(input, output) {
   output$capitais_ma <- renderPlotly({
     plot_capitais(capitais_base_principal, destaque = "Maranhão")
   })
-  output$tabela_ma <- render_gt({
+  output$tabela_ma <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_ma))
   })
   
@@ -492,7 +502,7 @@ server <- function(input, output) {
   output$capitais_mt <- renderPlotly({
     plot_capitais(capitais_base_principal, destaque = "Mato Grosso")
   })
-  output$tabela_mt <- render_gt({
+  output$tabela_mt <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_mt))
   })
   
@@ -506,7 +516,7 @@ server <- function(input, output) {
   output$capitais_ms <- renderPlotly({
     plot_capitais(capitais_base_principal, destaque = "Mato Grosso do Sul")
   })
-  output$tabela_ms <- render_gt({
+  output$tabela_ms <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_ms))
   })
   
@@ -520,7 +530,7 @@ server <- function(input, output) {
   output$capitais_mg <- renderPlotly({
     plot_capitais(capitais_base_principal, destaque = "Minas Gerais")
   })
-  output$tabela_mg <- render_gt({
+  output$tabela_mg <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_mg))
   })
   
@@ -534,7 +544,7 @@ server <- function(input, output) {
   output$capitais_pa <- renderPlotly({
     plot_capitais(capitais_base_principal, destaque = "Pará")
   })
-  output$tabela_pa <- render_gt({
+  output$tabela_pa <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_pa))
   })
   
@@ -548,7 +558,7 @@ server <- function(input, output) {
   output$capitais_pb <- renderPlotly({
     plot_capitais(capitais_base_principal, destaque = "Paraíba")
   })
-  output$tabela_pb <- render_gt({
+  output$tabela_pb <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_pb))
   })
   
@@ -562,7 +572,7 @@ server <- function(input, output) {
   output$capitais_pr <- renderPlotly({
     plot_capitais(capitais_base_principal, destaque = "Paraná")
   })
-  output$tabela_pr <- render_gt({
+  output$tabela_pr <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_pr))
   })
   
@@ -576,7 +586,7 @@ server <- function(input, output) {
   output$capitais_pe <- renderPlotly({
     plot_capitais(capitais_base_principal, destaque = "Pernambuco")
   })
-  output$tabela_pe <- render_gt({
+  output$tabela_pe <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_pe))
   })
   
@@ -590,7 +600,7 @@ server <- function(input, output) {
   output$capitais_pi <- renderPlotly({
     plot_capitais(capitais_base_principal, destaque = "Piauí")
   })
-  output$tabela_pi <- render_gt({
+  output$tabela_pi <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_pi))
   })
   
@@ -604,7 +614,7 @@ server <- function(input, output) {
   output$capitais_rj <- renderPlotly({
     plot_capitais(capitais_base_principal, destaque = "Rio de Janeiro")
   })
-  output$tabela_rj <- render_gt({
+  output$tabela_rj <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_rj))
   })
   
@@ -618,7 +628,7 @@ server <- function(input, output) {
   output$capitais_rn <- renderPlotly({
     plot_capitais(capitais_base_principal, destaque = "Rio Grande do Norte")
   })
-  output$tabela_rn <- render_gt({
+  output$tabela_rn <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_rn))
   })
   
@@ -632,7 +642,7 @@ server <- function(input, output) {
   output$capitais_rs <- renderPlotly({
     plot_capitais(capitais_base_principal, destaque = "Rio Grande do Sul")
   })
-  output$tabela_rs <- render_gt({
+  output$tabela_rs <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_rs))
   })
   
@@ -646,7 +656,7 @@ server <- function(input, output) {
   output$capitais_ro <- renderPlotly({
     plot_capitais(capitais_base_principal, destaque = "Rondônia")
   })
-  output$tabela_ro <- render_gt({
+  output$tabela_ro <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_ro))
   })
   
@@ -660,7 +670,7 @@ server <- function(input, output) {
   output$capitais_rr <- renderPlotly({
     plot_capitais(capitais_base_principal, destaque = "Roraima")
   })
-  output$tabela_rr <- render_gt({
+  output$tabela_rr <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_rr))
   })
   
@@ -674,7 +684,7 @@ server <- function(input, output) {
   output$capitais_sc <- renderPlotly({
     plot_capitais(capitais_base_principal, destaque = "Santa Catarina")
   })
-  output$tabela_sc <- render_gt({
+  output$tabela_sc <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_sc))
   })
   
@@ -688,7 +698,7 @@ server <- function(input, output) {
   output$capitais_sp <- renderPlotly({
     plot_capitais(capitais_base_principal, destaque = "São Paulo")
   })
-  output$tabela_sp <- render_gt({
+  output$tabela_sp <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_sp))
   })
   
@@ -702,7 +712,7 @@ server <- function(input, output) {
   output$capitais_se <- renderPlotly({
     plot_capitais(capitais_base_principal, destaque = "Sergipe")
   })
-  output$tabela_se <- render_gt({
+  output$tabela_se <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_se))
   })
   
@@ -716,7 +726,7 @@ server <- function(input, output) {
   output$capitais_to <- renderPlotly({
     plot_capitais(capitais_base_principal, destaque = "Tocantins")
   })
-  output$tabela_to <- render_gt({
+  output$tabela_to <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_to))
   })
   
