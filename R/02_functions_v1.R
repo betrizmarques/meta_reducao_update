@@ -54,7 +54,7 @@ filtrar_dados <- function(base){
     base %>% 
     mutate(meta_percentual = paste0(round(var_perc*100, 2),'%'),
            reducao_percentual = paste0(round(reducao*100, 2),'%'),
-           media_mortes = round(media_mortes),
+           media_mortes = round(media_mortes, 2),
            cor = ifelse(meta_atingida >= 0, "red", "green"),
            meta_atingida_limite = case_when(
              meta_atingida > 100 ~ 100,
@@ -209,7 +209,6 @@ gerar_tab_estado <- function(nome_aba, media_antigo, media_23, atingiram_meta,
                              scatterplot, barras_estados, tabela, barras_capitais){
   tabItem(
     tabName = nome_aba,
-    
     fluidRow(
       column(
         width = 4,
@@ -304,7 +303,7 @@ gerar_tab_estado <- function(nome_aba, media_antigo, media_23, atingiram_meta,
           title = "Tabela",
           div(
             style = "overflow-x: auto; max-height: 600px; width: 100%;",
-            gt_output(tabela)
+            DTOutput(tabela)
           )
         )
       )
@@ -339,38 +338,36 @@ base_graficos <- function(base){
 
 tabela_reducao_aumento <- function(dados_filtrados) {
   dados_ordenados <- dados_filtrados %>%
-    arrange(Prioridade) 
-  
-  dados_ordenados %>%
-    gt() %>%
-    tab_options(
-      table.width = "100%"
-    ) %>% 
-    cols_label(
-      `Redução/Aumento` = html("<span style='color:#228B22'>Redução</span>/<span style='color:#B22222'>Aumento</span>")
-    ) %>%
-    tab_style(
-      style = list(cell_text(color = "#228B22")),
-      locations = cells_body(
-        columns = 'Redução/Aumento',
-        rows = as.numeric(str_replace_all(`Redução/Aumento`, "%", "")) < 0
+    arrange(Prioridade) %>%
+    mutate(
+      cor_html = ifelse(
+        as.numeric(gsub("%", "", `Redução/Aumento`)) < 0,
+        paste0("<span style='color:#228B22'>", `Redução/Aumento`, "</span>"),
+        paste0("<span style='color:#B22222'>", `Redução/Aumento`, "</span>")
       )
-    ) %>%
-    tab_style(
-      style = list(cell_text(color = "#B22222")),
-      locations = cells_body(
-        columns = 'Redução/Aumento',
-        rows = as.numeric(str_replace_all(`Redução/Aumento`, "%", "")) > 0
-      )
-    ) %>%
-    tab_style(
-      style = list(cell_text(align = "center")),  
-      locations = cells_body(columns = everything())  
-    ) %>% 
-    tab_style(
-      style = list(cell_text(align = "center")),
-      locations = cells_column_labels(columns = everything())
     )
+  
+  
+  dados_ordenados$`Redução/Aumento` <- dados_ordenados$cor_html
+  dados_ordenados$cor_html <- NULL  
+  
+
+  datatable(
+    dados_ordenados,
+    escape = FALSE, 
+    filter = "none",  
+    rownames = FALSE,
+    options = list(
+      dom = 'ft',
+      paging = F, 
+      scrollY = "400px",
+      scrollCollapse = T,
+      autoWidth = TRUE,
+      columnDefs = list(
+        list(className = 'dt-center', targets = "_all")  
+      )
+    )
+  )
 }
 
 capitais <- c(
