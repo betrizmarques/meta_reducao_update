@@ -17,12 +17,12 @@ require(tidyverse)
 
 mortes_transito <- rtdeaths #base das mortes de trânsito
 
-frota_municipios <- readxl::read_xlsx('data/FrotapormunicipioetipoDezembro2024.xlsx',
+frota_municipios <- readxl::read_xlsx('R/data/FrotapormunicipioetipoDezembro2024.xlsx',
                                       skip = 3) # base das frotas dos municípios
 
-municipios_metas <- read.csv('data/municipios_metas.csv') #base das metas estabelecidas para cada município
+municipios_metas <- read.csv('R/data/municipios_metas.csv') #base das metas estabelecidas para cada município
 
-populacao_municipio <- readxl::read_excel('data/POP_TCU_2023_Municipios_POP2022_Malha2023.xls', 
+populacao_municipio <- readxl::read_excel('R/data/POP_TCU_2023_Municipios_POP2022_Malha2023.xls', 
                                           skip = 1)# base do numero de habitantes no municipio
 ufs <- tibble::tibble( 
   sigla = c("AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA",
