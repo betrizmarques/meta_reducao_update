@@ -56,13 +56,14 @@ filtrar_dados <- function(base){
            reducao_percentual = paste0(round(reducao*100, 2),'%'),
            media_mortes = round(media_mortes, 2),
            cor = ifelse(meta_atingida >= 0, "red", "green"),
+           atingiu_meta = ifelse(meta_atingida>=100, "Sim", "Não"),
            meta_atingida_limite = case_when(
              meta_atingida > 100 ~ 100,
              meta_atingida < -100 ~ -100,
              TRUE ~ meta_atingida
            ),
            meta_atingida_limite = paste0(round(meta_atingida_limite, 2),'%')) %>% 
-    select(prioridade,nome_do_municipio, uf, media_mortes, meta_percentual, n_mortes_23, reducao_percentual, meta_atingida_limite) %>% 
+    select(prioridade,nome_do_municipio, uf, media_mortes, meta_percentual, n_mortes_23, reducao_percentual, meta_atingida_limite, atingiu_meta) %>% 
     rename('Prioridade' = prioridade,
            'Município' = nome_do_municipio,
            'Média de mortes (2018-2020)' = media_mortes,
@@ -363,6 +364,26 @@ tabela_reducao_aumento <- function(dados_filtrados) {
       scrollY = "400px",
       scrollCollapse = T,
       autoWidth = TRUE,
+      initComplete = JS(
+        "function(settings, json) {",
+        "  this.api().columns().every(function(index) {",
+        "    if(index === 8) {", 
+        "      var column = this;",
+        "      var header = $(column.header()).empty();",
+        "      header.append('<div style=\"font-weight:bold; font-size:14px;\">Atingiu Meta? </div>');",
+        "      var select = $('<select><option value=\"\">Mostrar todos</option></select>')",
+        "        .appendTo(header)",
+        "        .on('change', function() {",
+        "          var val = $.fn.dataTable.util.escapeRegex($(this).val());",
+        "          column.search(val ? '^' + val + '$' : '', true, false).draw();",
+        "        });",
+        "      column.data().unique().sort().each(function(d, j) {",
+        "        select.append('<option value=\"'+d+'\">'+d+'</option>');",
+        "      });",
+        "    }",
+        "  });",
+        "}"
+      ),
       columnDefs = list(
         list(className = 'dt-center', targets = "_all")  
       )
