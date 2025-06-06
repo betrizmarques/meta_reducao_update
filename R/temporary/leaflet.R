@@ -7,7 +7,11 @@ library(tidyverse)
 mortes_transito_mapa_estados <- read.csv(file = 'R/data/base_principal.csv') %>% 
   group_by(uf) %>% 
   summarise(num_mortes = sum(n_mortes_23),
-            meta_reducao = (sum(meta) - sum(media_mortes))/sum(media_mortes)*100) %>% 
+            num_mortes_antigo = sum(media_mortes),
+            meta_reducao = (sum(meta) - sum(media_mortes))/sum(media_mortes)*100,
+            reducao_estado = (sum(n_mortes_23)-sum(media_mortes))/sum(media_mortes)*100,
+            meta_atingida = reducao_estado/meta_reducao*100
+            ) %>% 
   ungroup() %>% 
   rename(abbrev_state = uf) 
 
@@ -16,6 +20,14 @@ todos_os_estados_sf <- read_state(code_state = "all", year = 2020)
 estados_com_dados_mortes <- todos_os_estados_sf %>% 
   left_join(mortes_transito_mapa_estados, by = 'abbrev_state')
 
+
+opcoes_filtro <- c(
+  "Número de Mortes no Trânsito em 2023" = "num_mortes",
+  "Média de Mortes no Trânsito (2018-2020)" = "num_mortes_antigo",
+  "Meta de Redução" = "meta_reducao",
+  "Redução" = "reducao_estado",
+  "Meta Atingida"= "meta_atingida"
+)
 
 paleta_cores_mortes <- colorNumeric(
   palette = "YlOrRd",
