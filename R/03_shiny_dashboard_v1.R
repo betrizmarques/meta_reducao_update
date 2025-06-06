@@ -52,6 +52,8 @@ estados <- c(
   "Tocantins" = "tocantins"
 )
 
+
+
 siglas <- unique(base_principal$uf)
 lapply(siglas, function(uf){
   calculo_estado(base_principal, uf)
@@ -59,12 +61,12 @@ lapply(siglas, function(uf){
 
   
 ui <- dashboardPage(
-  dark = FALSE,
+  dark = NULL,
   help = NULL, 
   fullscreen = TRUE,
   scrollToTop = TRUE,
   
-  title = "ONSV - Dashboard Shiny",
+  title = "ONSV - Cumprimento das Metas",
   header = dashboardHeader(
     title = dashboardBrand(
       title = "ONSV",
@@ -117,11 +119,11 @@ ui <- dashboardPage(
         
         tabName = "inicio",
         jumbotron(
-          title = "Cumprimento das Metas de Redução de Mortes no Trânsito dos Municípios Brasileiros até 2023.",
+          title = "Análise do Cumprimento das Metas de Redução de Mortes no Trânsito.",
           status = "primary",
-          lead = "Visualização e análise do cumprimento das metas estabelecidas para os municípios brasileiros pelo PNATRANS em 2021.",
+          lead = "Visualização e análise do cumprimento das metas de redução de mortes no trânsito até 2023, estabelecidas para os municípios brasileiros pelo PNATRANS em 2021.",
           btnName = "Relatório",
-          href = "https://github.com/pabsantos/roadtrafficdeaths",
+          href = "https://betrizmarques.github.io/cumprimento-metas/",
           "Você pode verificar o relatório deste DashBoard, acessando o link abaixo:"
          
         ), 
@@ -164,11 +166,12 @@ ui <- dashboardPage(
                 
                 color = "warning"
               )
+              
           )
         )
       ),
-      gerar_tab_estado("brasil", mortes_br_antigo, mortes_23_br, atingiram_meta_br,
-                       n_muncipios_br, meta_reducao_br, reducao_23_br,
+      gerar_tab_estado("brasil", mortes_antigo_br, mortes_23_br, atingiram_meta_br,
+                       n_municipios_br, meta_reducao_br, reducao_23_br,
                        "scatterplot_br", "barplot_br", 'tabela_br', "capitais_br"),
       gerar_tab_estado("acre", mortes_antigo_ac, mortes_23_ac, atingiram_meta_ac,
                        n_municipios_ac, meta_reducao_ac, reducao_23_ac,
@@ -269,7 +272,7 @@ server <- function(input, output) {
   
   
   output$capitais_br <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque =  "")
+    plot_capitais(base_principal, destaque =  "")
     
   })
   
@@ -287,7 +290,7 @@ server <- function(input, output) {
   
   
   output$capitais_ac <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque =  "Acre")
+    plot_capitais(base_principal, destaque =  "Acre")
    
   })
 
@@ -305,7 +308,7 @@ server <- function(input, output) {
   
   
   output$capitais_al <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque =  "Alagoas")
+    plot_capitais(base_principal, destaque =  "Alagoas")
     
   })
   
@@ -323,7 +326,7 @@ server <- function(input, output) {
   
   
   output$capitais_ap <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque =  "Amapa")
+    plot_capitais(base_principal, destaque =  "Amapá")
     
   })
   
@@ -342,7 +345,7 @@ server <- function(input, output) {
   
   
   output$capitais_am <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque =  "Amazonas")
+    plot_capitais(base_principal, destaque =  "Amazonas")
     
   })
   
@@ -361,7 +364,7 @@ server <- function(input, output) {
   
   
   output$capitais_ba <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque =  "Bahia")
+    plot_capitais(base_principal, destaque =  "Bahia")
     
   })
   
@@ -381,7 +384,7 @@ server <- function(input, output) {
   
   
   output$capitais_ce <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque =  "Ceará")
+    plot_capitais(base_principal, destaque =  "Ceará")
     
   })
   
@@ -422,7 +425,7 @@ server <- function(input, output) {
   
   output$capitais_es <- renderPlotly({
     
-    plot_capitais(capitais_base_principal, destaque =  "Espírito Santo")
+    plot_capitais(base_principal, destaque =  "Espírito Santo")
   })
   
   output$tabela_es <- renderDT({
@@ -439,7 +442,7 @@ server <- function(input, output) {
   
   
   output$capitais_go <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque =  "Goiás")
+    plot_capitais(base_principal, destaque =  "Goiás")
   })
   
   output$tabela_go <- renderDT({
@@ -458,7 +461,7 @@ server <- function(input, output) {
   
   
   output$capitais_go <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque =  "Goiás")
+    plot_capitais(base_principal, destaque =  "Goiás")
   })
   
   output$tabela_go <- renderDT({
@@ -472,7 +475,7 @@ server <- function(input, output) {
     plot_reducao_estados(base_principal, destaque = "Goiás")
   })
   output$capitais_go <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque = "Goiás")
+    plot_capitais(base_principal, destaque = "Goiás")
   })
   output$tabela_go <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_go))
@@ -486,7 +489,7 @@ server <- function(input, output) {
     plot_reducao_estados(base_principal, destaque = "Maranhão")
   })
   output$capitais_ma <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque = "Maranhão")
+    plot_capitais(base_principal, destaque = "Maranhão")
   })
   output$tabela_ma <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_ma))
@@ -500,7 +503,7 @@ server <- function(input, output) {
     plot_reducao_estados(base_principal, destaque = "Mato Grosso")
   })
   output$capitais_mt <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque = "Mato Grosso")
+    plot_capitais(base_principal, destaque = "Mato Grosso")
   })
   output$tabela_mt <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_mt))
@@ -514,7 +517,7 @@ server <- function(input, output) {
     plot_reducao_estados(base_principal, destaque = "Mato Grosso do Sul")
   })
   output$capitais_ms <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque = "Mato Grosso do Sul")
+    plot_capitais(base_principal, destaque = "Mato Grosso do Sul")
   })
   output$tabela_ms <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_ms))
@@ -528,7 +531,7 @@ server <- function(input, output) {
     plot_reducao_estados(base_principal, destaque = "Minas Gerais")
   })
   output$capitais_mg <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque = "Minas Gerais")
+    plot_capitais(base_principal, destaque = "Minas Gerais")
   })
   output$tabela_mg <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_mg))
@@ -542,7 +545,7 @@ server <- function(input, output) {
     plot_reducao_estados(base_principal, destaque = "Pará")
   })
   output$capitais_pa <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque = "Pará")
+    plot_capitais(base_principal, destaque = "Pará")
   })
   output$tabela_pa <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_pa))
@@ -556,7 +559,7 @@ server <- function(input, output) {
     plot_reducao_estados(base_principal, destaque = "Paraíba")
   })
   output$capitais_pb <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque = "Paraíba")
+    plot_capitais(base_principal, destaque = "Paraíba")
   })
   output$tabela_pb <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_pb))
@@ -570,7 +573,7 @@ server <- function(input, output) {
     plot_reducao_estados(base_principal, destaque = "Paraná")
   })
   output$capitais_pr <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque = "Paraná")
+    plot_capitais(base_principal, destaque = "Paraná")
   })
   output$tabela_pr <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_pr))
@@ -584,7 +587,7 @@ server <- function(input, output) {
     plot_reducao_estados(base_principal, destaque = "Pernambuco")
   })
   output$capitais_pe <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque = "Pernambuco")
+    plot_capitais(base_principal, destaque = "Pernambuco")
   })
   output$tabela_pe <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_pe))
@@ -598,7 +601,7 @@ server <- function(input, output) {
     plot_reducao_estados(base_principal, destaque = "Piauí")
   })
   output$capitais_pi <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque = "Piauí")
+    plot_capitais(base_principal, destaque = "Piauí")
   })
   output$tabela_pi <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_pi))
@@ -612,7 +615,7 @@ server <- function(input, output) {
     plot_reducao_estados(base_principal, destaque = "Rio de Janeiro")
   })
   output$capitais_rj <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque = "Rio de Janeiro")
+    plot_capitais(base_principal, destaque = "Rio de Janeiro")
   })
   output$tabela_rj <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_rj))
@@ -626,7 +629,7 @@ server <- function(input, output) {
     plot_reducao_estados(base_principal, destaque = "Rio Grande do Norte")
   })
   output$capitais_rn <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque = "Rio Grande do Norte")
+    plot_capitais(base_principal, destaque = "Rio Grande do Norte")
   })
   output$tabela_rn <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_rn))
@@ -640,7 +643,7 @@ server <- function(input, output) {
     plot_reducao_estados(base_principal, destaque = "Rio Grande do Sul")
   })
   output$capitais_rs <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque = "Rio Grande do Sul")
+    plot_capitais(base_principal, destaque = "Rio Grande do Sul")
   })
   output$tabela_rs <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_rs))
@@ -654,7 +657,7 @@ server <- function(input, output) {
     plot_reducao_estados(base_principal, destaque = "Rondônia")
   })
   output$capitais_ro <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque = "Rondônia")
+    plot_capitais(base_principal, destaque = "Rondônia")
   })
   output$tabela_ro <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_ro))
@@ -668,7 +671,7 @@ server <- function(input, output) {
     plot_reducao_estados(base_principal, destaque = "Roraima")
   })
   output$capitais_rr <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque = "Roraima")
+    plot_capitais(base_principal, destaque = "Roraima")
   })
   output$tabela_rr <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_rr))
@@ -682,7 +685,7 @@ server <- function(input, output) {
     plot_reducao_estados(base_principal, destaque = "Santa Catarina")
   })
   output$capitais_sc <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque = "Santa Catarina")
+    plot_capitais(base_principal, destaque = "Santa Catarina")
   })
   output$tabela_sc <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_sc))
@@ -696,7 +699,7 @@ server <- function(input, output) {
     plot_reducao_estados(base_principal, destaque = "São Paulo")
   })
   output$capitais_sp <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque = "São Paulo")
+    plot_capitais(base_principal, destaque = "São Paulo")
   })
   output$tabela_sp <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_sp))
@@ -710,7 +713,7 @@ server <- function(input, output) {
     plot_reducao_estados(base_principal, destaque = "Sergipe")
   })
   output$capitais_se <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque = "Sergipe")
+    plot_capitais(base_principal, destaque = "Sergipe")
   })
   output$tabela_se <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_se))
@@ -724,7 +727,7 @@ server <- function(input, output) {
     plot_reducao_estados(base_principal, destaque = "Tocantins")
   })
   output$capitais_to <- renderPlotly({
-    plot_capitais(capitais_base_principal, destaque = "Tocantins")
+    plot_capitais(base_principal, destaque = "Tocantins")
   })
   output$tabela_to <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_filtrada_to))
