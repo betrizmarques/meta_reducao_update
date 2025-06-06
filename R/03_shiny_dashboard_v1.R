@@ -170,9 +170,7 @@ ui <- dashboardPage(
           )
         )
       ),
-      gerar_tab_estado("brasil", mortes_antigo_br, mortes_23_br, atingiram_meta_br,
-                       n_municipios_br, meta_reducao_br, reducao_23_br,
-                       "scatterplot_br", "barplot_br", 'tabela_br', "capitais_br"),
+      gerar_tab_brasil(),
       gerar_tab_estado("acre", mortes_antigo_ac, mortes_23_ac, atingiram_meta_ac,
                        n_municipios_ac, meta_reducao_ac, reducao_23_ac,
                        "scatterplot_ac", "barplot_ac", 'tabela_ac', "capitais_ac"),
@@ -261,478 +259,193 @@ ui <- dashboardPage(
 
 
 server <- function(input, output) {
+  mortes_transito_mapa_estados <- base_principal %>% 
+    group_by(uf) %>% 
+    summarise(num_mortes = sum(n_mortes_23),
+              num_mortes_antigo = sum(media_mortes),
+              meta_reducao = (sum(meta) - sum(media_mortes))/sum(media_mortes)*100,
+              reducao_estado = (sum(n_mortes_23)-sum(media_mortes))/sum(media_mortes)*100,
+              meta_atingida = reducao_estado/meta_reducao*100
+    ) %>% 
+    ungroup() %>% 
+    rename(abbrev_state = uf) 
   
-  output$scatterplot_br <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_principal))
+  todos_os_estados_sf <- read_state(code_state = "all", year = 2020)
+  
+  estados_com_dados_mortes <- todos_os_estados_sf %>% 
+    left_join(mortes_transito_mapa_estados, by = 'abbrev_state')
+
+  opcoes_filtro <- c(
+    "Mortes no Trânsito 2023" = "num_mortes",
+    "Mortes no Trânsito (2018-2020)" = "num_mortes_antigo",
+    "Redução" = "reducao_estado",
+    "Meta Atingida"= "meta_atingida",
+    "Meta de Redução" = "meta_reducao"
+  )
+  
+  output$mapa_brasil <- renderLeaflet({
+    
+    
+   
+    variavel_padrao <- "num_mortes" 
+    dados_padrao <- estados_com_dados_mortes[[variavel_padrao]]
+    titulo_padrao <- names(opcoes_filtro)[opcoes_filtro == variavel_padrao]
+    
+    paleta_padrao <- colorNumeric(
+      palette = "YlOrRd",
+      domain = dados_padrao
+    )
+    
+    leaflet(estados_com_dados_mortes) %>%
+     
+      addProviderTiles(providers$CartoDB.Positron, group = "CartoDB Positron") %>%
+      addProviderTiles(providers$OpenStreetMap, group = "OpenStreetMap Padrão") %>%
+      addProviderTiles(providers$Esri.WorldImagery, group = "Satélite Esri") %>%
+      setView(lng = -55, lat = -15, zoom = 4) %>%
+      
+  
+      addPolygons(
+        fillColor = ~paleta_padrao(dados_padrao),
+        weight = 1.5, opacity = 1, color = "grey", fillOpacity = 0.8,
+        highlightOptions = highlightOptions(weight = 4, color = "#444", fillOpacity = 0.9, bringToFront = TRUE),
+        popup = ~paste0(
+          "<strong>Estado: </strong>", name_state, "<br>",
+          "<strong>Total de Mortes (2023): </strong>", format(num_mortes, big.mark = "."), "<br>",
+          "<strong>Redução de Mortes: </strong>", round(reducao_estado, 2), "%<br>",
+          "<strong>% da Meta Atingida: </strong>", round(meta_atingida, 2), "%"
+        )
+      ) %>%
+      addLegend(
+        pal = paleta_padrao,
+        values = ~dados_padrao,
+        opacity = 0.7,
+        title = titulo_padrao,
+        position = "bottomleft",
+        labFormat = labelFormat(big.mark = ".")
+      ) %>%
+      addLayersControl(
+       
+        baseGroups = c("CartoDB Positron", "OpenStreetMap Padrão", "Satélite Esri"),
+        options = layersControlOptions(collapsed = TRUE),
+        position = "topleft"
+      )
   })
+O
+  observe({
+    variavel <- input$variavel_mapa
+    dados_da_variavel <- estados_com_dados_mortes[[variavel]]
+    titulo_legenda <- names(opcoes_filtro)[opcoes_filtro == variavel]
+    
+    if (variavel %in% c("num_mortes", "num_mortes_antigo")) {
+      paleta_cores <- colorNumeric(palette = "YlOrRd", domain = dados_da_variavel)
+      formato_legenda <- labelFormat(big.mark = ".")
+    } else if (variavel == "meta_reducao") {
+
+      paleta_cores <- colorNumeric(
+        palette = "YlOrRd", 
+        domain = dados_da_variavel,
+        reverse = TRUE 
+      )
+      formato_legenda <- labelFormat(suffix = " %", digits = 2)
+      
+    } else if (variavel == "reducao_estado") {
+      paleta_cores <- colorNumeric(palette = "YlOrRd", domain = dados_da_variavel)
+      formato_legenda <- labelFormat(suffix = " %", digits = 2)
+    } else if (variavel == "meta_atingida") {
+      paleta_cores <- colorNumeric(palette = "YlOrRd", domain = dados_da_variavel)
+      formato_legenda <- labelFormat(suffix = " %", digits = 2)
+    }
+    
+    leafletProxy("mapa_brasil", data = estados_com_dados_mortes) %>%
+      clearShapes() %>%
+      clearControls() %>%
+      addPolygons(
+        fillColor = ~paleta_cores(dados_da_variavel),
+        weight = 1.5,
+        opacity = 1,
+        color = "grey",
+        fillOpacity = 0.8,
+        highlightOptions = highlightOptions(
+          weight = 4, color = "#444", fillOpacity = 0.9, bringToFront = TRUE
+        ),
+        popup = ~paste0(
+          "<strong>Estado: </strong>", name_state, "<br>",
+          "<strong>Total de Mortes (2023): </strong>", format(num_mortes, big.mark = "."), "<br>",
+          "<strong>Redução de Mortes: </strong>", round(reducao_estado, 2), "%<br>",
+          "<strong>% da Meta Atingida: </strong>", round(meta_atingida, 2), "%"
+        )
+      ) %>%
+      addLegend(
+        pal = paleta_cores,
+        values = ~dados_da_variavel,
+        opacity = 0.7,
+        title = titulo_legenda,
+        position = "bottomleft",
+        labFormat = formato_legenda
+      ) %>%
+      addLayersControl(
+        baseGroups = c("CartoDB Positron", "OpenStreetMap Padrão", "Satélite Esri"),
+        options = layersControlOptions(collapsed = TRUE),
+        position = "topleft"
+      )
+  }) 
   
   output$barplot_br <- renderPlotly({
     plot_reducao_estados(base_principal, destaque = "")
   })
   
   
-  output$capitais_br <- renderPlotly({
-    plot_capitais(base_principal, destaque =  "")
-    
+  output$scatterplot_br <- renderPlotly({
+    grafico_meta_atingida(base_graficos(base_principal))
   })
+
   
   output$tabela_br <- renderDT({
     tabela_reducao_aumento(filtrar_dados(base_principal))
   })
-  ##
-  output$scatterplot_ac <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_ac))
-  })
-  
-  output$barplot_ac <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Acre")
-  })
-  
-  
-  output$capitais_ac <- renderPlotly({
-    plot_capitais(base_principal, destaque =  "Acre")
-   
-  })
 
-  output$tabela_ac <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_ac))
-  })
-  ##
-  output$scatterplot_al <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_al))
-  })
-  
-  output$barplot_al <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Alagoas")
-  })
-  
-  
-  output$capitais_al <- renderPlotly({
-    plot_capitais(base_principal, destaque =  "Alagoas")
-    
-  })
-  
-  output$tabela_al <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_al))
-  })
-  ##
-  output$scatterplot_ap <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_ap))
-  })
-  
-  output$barplot_ap <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Amapá")
-  })
-  
-  
-  output$capitais_ap <- renderPlotly({
-    plot_capitais(base_principal, destaque =  "Amapá")
-    
-  })
-  
-  output$tabela_ap <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_ap))
-  })
-##
-  
-  output$scatterplot_am <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_am))
-  })
-  
-  output$barplot_am <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Amazonas")
-  })
-  
-  
-  output$capitais_am <- renderPlotly({
-    plot_capitais(base_principal, destaque =  "Amazonas")
-    
-  })
-  
-  output$tabela_am <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_am))
-  })
-##
-  
-  output$scatterplot_ba <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_ba))
-  })
-  
-  output$barplot_ba <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Bahia")
-  })
-  
-  
-  output$capitais_ba <- renderPlotly({
-    plot_capitais(base_principal, destaque =  "Bahia")
-    
-  })
-  
-  output$tabela_ba <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_ba))
-  })
-  
-  ## CE
-  
-  output$scatterplot_ce <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_ce))
-  })
-  
-  output$barplot_ce <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Ceará")
-  })
-  
-  
-  output$capitais_ce <- renderPlotly({
-    plot_capitais(base_principal, destaque =  "Ceará")
-    
-  })
-  
-  output$tabela_ce <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_ce))
-  })
-  
-  ##
-  
-  output$scatterplot_df <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_df))
-  })
-  
-  output$barplot_df <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Distrito Federal")
-  })
-  
-  
-  output$capitais_df <- renderPlotly({
-    plot_capitais(base_principal, destaque =  "Distrito Federal")
-    
-  })
-  
-  output$tabela_df <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_df))
-  })
-  
-  ##
-  
-  output$scatterplot_es <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_es))
-  })
-  
-  output$barplot_es <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Espírito Santo")
-  })
-  
-  
-  output$capitais_es <- renderPlotly({
-    
-    plot_capitais(base_principal, destaque =  "Espírito Santo")
-  })
-  
-  output$tabela_es <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_es))
-  })
-  
-  output$scatterplot_go <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_go))
-  })
-  
-  output$barplot_go <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Goiás")
-  })
-  
-  
-  output$capitais_go <- renderPlotly({
-    plot_capitais(base_principal, destaque =  "Goiás")
-  })
-  
-  output$tabela_go <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_go))
-  })
-  
-  ##
-  
-  output$scatterplot_ma <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_ma))
-  })
-  
-  output$barplot_go <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Goiás")
-  })
-  
-  
-  output$capitais_go <- renderPlotly({
-    plot_capitais(base_principal, destaque =  "Goiás")
-  })
-  
-  output$tabela_go <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_go))
-  })
-  # Goiás
-  output$scatterplot_go <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_go))
-  })
-  output$barplot_go <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Goiás")
-  })
-  output$capitais_go <- renderPlotly({
-    plot_capitais(base_principal, destaque = "Goiás")
-  })
-  output$tabela_go <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_go))
-  })
-  
-  # Maranhão
-  output$scatterplot_ma <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_ma))
-  })
-  output$barplot_ma <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Maranhão")
-  })
-  output$capitais_ma <- renderPlotly({
-    plot_capitais(base_principal, destaque = "Maranhão")
-  })
-  output$tabela_ma <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_ma))
-  })
-  
-  # Mato Grosso
-  output$scatterplot_mt <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_mt))
-  })
-  output$barplot_mt <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Mato Grosso")
-  })
-  output$capitais_mt <- renderPlotly({
-    plot_capitais(base_principal, destaque = "Mato Grosso")
-  })
-  output$tabela_mt <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_mt))
-  })
-  
-  # Mato Grosso do Sul
-  output$scatterplot_ms <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_ms))
-  })
-  output$barplot_ms <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Mato Grosso do Sul")
-  })
-  output$capitais_ms <- renderPlotly({
-    plot_capitais(base_principal, destaque = "Mato Grosso do Sul")
-  })
-  output$tabela_ms <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_ms))
-  })
-  
-  # Minas Gerais
-  output$scatterplot_mg <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_mg))
-  })
-  output$barplot_mg <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Minas Gerais")
-  })
-  output$capitais_mg <- renderPlotly({
-    plot_capitais(base_principal, destaque = "Minas Gerais")
-  })
-  output$tabela_mg <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_mg))
-  })
-  
-  # Pará
-  output$scatterplot_pa <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_pa))
-  })
-  output$barplot_pa <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Pará")
-  })
-  output$capitais_pa <- renderPlotly({
-    plot_capitais(base_principal, destaque = "Pará")
-  })
-  output$tabela_pa <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_pa))
-  })
-  
-  # Paraíba
-  output$scatterplot_pb <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_pb))
-  })
-  output$barplot_pb <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Paraíba")
-  })
-  output$capitais_pb <- renderPlotly({
-    plot_capitais(base_principal, destaque = "Paraíba")
-  })
-  output$tabela_pb <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_pb))
-  })
-  
-  # Paraná
-  output$scatterplot_pr <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_pr))
-  })
-  output$barplot_pr <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Paraná")
-  })
-  output$capitais_pr <- renderPlotly({
-    plot_capitais(base_principal, destaque = "Paraná")
-  })
-  output$tabela_pr <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_pr))
-  })
-  
-  # Pernambuco
-  output$scatterplot_pe <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_pe))
-  })
-  output$barplot_pe <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Pernambuco")
-  })
-  output$capitais_pe <- renderPlotly({
-    plot_capitais(base_principal, destaque = "Pernambuco")
-  })
-  output$tabela_pe <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_pe))
-  })
-  
-  # Piauí
-  output$scatterplot_pi <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_pi))
-  })
-  output$barplot_pi <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Piauí")
-  })
-  output$capitais_pi <- renderPlotly({
-    plot_capitais(base_principal, destaque = "Piauí")
-  })
-  output$tabela_pi <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_pi))
-  })
-  
-  # Rio de Janeiro
-  output$scatterplot_rj <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_rj))
-  })
-  output$barplot_rj <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Rio de Janeiro")
-  })
-  output$capitais_rj <- renderPlotly({
-    plot_capitais(base_principal, destaque = "Rio de Janeiro")
-  })
-  output$tabela_rj <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_rj))
-  })
-  
-  #Rio Grande do Norte
-  output$scatterplot_rn <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_rn))
-  })
-  output$barplot_rn <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Rio Grande do Norte")
-  })
-  output$capitais_rn <- renderPlotly({
-    plot_capitais(base_principal, destaque = "Rio Grande do Norte")
-  })
-  output$tabela_rn <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_rn))
-  })
-  
-  #Rio Grande do Sul
-  output$scatterplot_rs <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_rs))
-  })
-  output$barplot_rs <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Rio Grande do Sul")
-  })
-  output$capitais_rs <- renderPlotly({
-    plot_capitais(base_principal, destaque = "Rio Grande do Sul")
-  })
-  output$tabela_rs <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_rs))
-  })
-  
-  # Rondônia
-  output$scatterplot_ro <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_ro))
-  })
-  output$barplot_ro <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Rondônia")
-  })
-  output$capitais_ro <- renderPlotly({
-    plot_capitais(base_principal, destaque = "Rondônia")
-  })
-  output$tabela_ro <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_ro))
-  })
-  
-  #Roraima
-  output$scatterplot_rr <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_rr))
-  })
-  output$barplot_rr <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Roraima")
-  })
-  output$capitais_rr <- renderPlotly({
-    plot_capitais(base_principal, destaque = "Roraima")
-  })
-  output$tabela_rr <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_rr))
-  })
-  
-  # Santa Catarina
-  output$scatterplot_sc <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_sc))
-  })
-  output$barplot_sc <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Santa Catarina")
-  })
-  output$capitais_sc <- renderPlotly({
-    plot_capitais(base_principal, destaque = "Santa Catarina")
-  })
-  output$tabela_sc <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_sc))
-  })
-  
-  #São Paulo
-  output$scatterplot_sp <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_sp))
-  })
-  output$barplot_sp <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "São Paulo")
-  })
-  output$capitais_sp <- renderPlotly({
-    plot_capitais(base_principal, destaque = "São Paulo")
-  })
-  output$tabela_sp <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_sp))
-  })
-  
-  # Sergipe
-  output$scatterplot_se <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_se))
-  })
-  output$barplot_se <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Sergipe")
-  })
-  output$capitais_se <- renderPlotly({
-    plot_capitais(base_principal, destaque = "Sergipe")
-  })
-  output$tabela_se <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_se))
-  })
-  
-  #Tocantins
-  output$scatterplot_to <- renderPlotly({
-    grafico_meta_atingida(base_graficos(base_filtrada_to))
-  })
-  output$barplot_to <- renderPlotly({
-    plot_reducao_estados(base_principal, destaque = "Tocantins")
-  })
-  output$capitais_to <- renderPlotly({
-    plot_capitais(base_principal, destaque = "Tocantins")
-  })
-  output$tabela_to <- renderDT({
-    tabela_reducao_aumento(filtrar_dados(base_filtrada_to))
-  })
   
-}
+info_estados <- data.frame(
+  sufixo <- c("ac", "al", "ap", "am", "ba", "ce", "df", "es", "go", "ma",
+              "mt", "ms", "mg", "pa", "pb", "pr", "pe", "pi", "rj", "rn",
+              "rs", "ro", "rr", "sc", "sp", "se", "to"),
+  nome_completo <- c("Acre", "Alagoas", "Amapá", "Amazonas", "Bahia", "Ceará",
+                     "Distrito Federal", "Espírito Santo", "Goiás", "Maranhão",
+                     "Mato Grosso", "Mato Grosso do Sul", "Minas Gerais", "Pará",
+                     "Paraíba", "Paraná", "Pernambuco", "Piauí", "Rio de Janeiro",
+                     "Rio Grande do Norte", "Rio Grande do Sul", "Rondônia",
+                     "Roraima", "Santa Catarina", "São Paulo", "Sergipe", "Tocantins"),
+  stringsAsFactors = FALSE
+)
+
+lapply(1:nrow(info_estados), function(i){
+  estado_info <- info_estados[i,]
+  nome_df_filtrado <- paste0("base_filtrada_", estado_info$sufixo)
+  
+
+  output[[paste0("scatterplot_", estado_info$sufixo)]] <- renderPlotly({
+
+    base_filtrada_atual <- get(nome_df_filtrado)
+    grafico_meta_atingida(base_graficos(base_filtrada_atual))
+  })
+  
+
+  output[[paste0("barplot_", estado_info$sufixo)]] <- renderPlotly({
+    plot_reducao_estados(base_principal, destaque = estado_info$nome_completo)
+  })
+  
+
+  output[[paste0("capitais_", estado_info$sufixo)]] <- renderPlotly({
+    plot_capitais(base_principal, destaque = estado_info$nome_completo)
+  })
+  
+ 
+  output[[paste0("tabela_", estado_info$sufixo)]] <- renderDT({
+    base_filtrada_atual <- get(nome_df_filtrado)
+    tabela_reducao_aumento(filtrar_dados(base_filtrada_atual))
+  })
+  
+})
+  }
 
 shinyApp(ui, server)
