@@ -87,6 +87,7 @@ populacao_municipio <- populacao_municipio %>%
          nome_do_municipio = `nome do município`) %>% 
   select(-`cod. uf`,-`cod. munic`)
 
-base_principal <- left_join(base_principal, populacao_municipio, by = c('uf', 'nome_do_municipio')) 
+base_principal <- left_join(base_principal, populacao_municipio, by = c('uf', 'nome_do_municipio')) %>% 
+  mutate(populacao_23 = str_remove(populacao_23, "\\s*\\([^\\)]*\\)"))
 
-write.csv(base_principal, file = "data/base_principal.csv") #salvando a base com todas as informações necessárias para a análise.
+write.csv(base_principal, file = "R/data/base_principal.csv") #salvando a base com todas as informações necessárias para a análise.
