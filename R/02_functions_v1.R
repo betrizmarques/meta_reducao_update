@@ -92,9 +92,9 @@ gerar_tab_estado <- function(nome_aba, media_antigo, media_23, atingiram_meta,
       ),
       box(
         width = 12, 
-        height = "600px", 
+        height = "750px", 
         title = "Gráfico de Dispersão: Meta de Redução x Meta Atingida",
-        plotlyOutput(scatterplot, height = "550px")
+        plotlyOutput(scatterplot, height = "700px")
       ),
       box(
         width = 12,
@@ -439,7 +439,7 @@ grafico_meta_atingida <- function(base_graficos) {
         tickvals = seq(-100, 100, 20),
         ticktext = paste0(seq(-100, 100, 20), '%')
       ),
-      plot_bgcolor = "#f9f9f9",
+      plot_bgcolor = "rgba(0,0,0,0)",
       paper_bgcolor = "#ffffff",
       margin = list(l = 20, r = 10, b = 30, t = 30),
       showlegend = FALSE
@@ -447,5 +447,127 @@ grafico_meta_atingida <- function(base_graficos) {
 }
 
 
+#gerar tab = brasil 
+gerar_tab_brasil <- function(){
+  tabItem(
+    tabName = "brasil",
+    fluidRow(
+      column(
+        width = 4,
+        infoBox(
+          width = 12,
+          title = "Média de Mortes no Trânsito (2018-2020)",
+          value = round(mortes_antigo_br, digits = 2),
+          icon = tags$i(class = "fas fa-car-crash", 
+                        style = "background-color: white; color: red; padding: 12px; border-radius: 5px;"),
+          color = "white"  
+        )
+      ),
+      column(
+        width = 4,
+        infoBox(
+          width = 12,
+          title = "Mortes no Trânsito (2023)",
+          value = round(mortes_23_br, digits = 2),
+          icon = tags$i(class = "fas fa-car-crash", 
+                        style = "background-color: white; color: red; padding: 12px; border-radius: 5px;"),
+          color = "white"  
+        )
+      ),
+      column(
+        width = 4,
+        infoBox(
+          width = 12,
+          title = "% de Municípios que Atingiram a Meta",
+          value = paste0(round(atingiram_meta_br*100, digits = 2), "%"),
+          icon = icon("location-dot"),
+          color = "white"
+        )
+      ),
+      column(
+        width = 4,
+        infoBox(
+          width = 12,
+          title = "Total de Municípios",
+          value = n_municipios_br,
+          icon = icon("location-dot"),
+          color = "white"
+        )
+      ),
+      column(
+        width = 4,
+        infoBox(
+          width = 12,
+          title = "Meta de Redução de Mortes (%)",
+          value = paste0(round(meta_reducao_br*100, digits = 2),"%"),
+          icon = icon("chart-line"),
+          color = "white"
+        )
+      ),
+      column(
+        width = 4,
+        infoBox(
+          width = 12,
+          title = "Redução / Aumento de Mortes (%)",
+          value = paste0(round(reducao_23_br*100, digits = 2), "%"),
+          icon = icon("chart-bar"),
+          color = "white"
+        )
+      )
+    ),
+    
+    fluidRow(
+      column(
+        width = 6,
+        
+        box(
+          width = 12,
+          title = "Redução por Estado",
+          plotlyOutput('barplot_br')
+        )
+      ),
+      column(
+        width = 6,
+        box(
+          width = 12,
+          title = "Mapa Interativo",
+          leafletOutput("mapa_brasil")
+        ),
+        absolutePanel(
+          bottom = 30,
+          right = 30,
+          width = 230,
+          draggable = FALSE,
+          style = "background-color: rgba(255,255,255,0.9); padding: 10px; border-radius: 5px; box-shadow: 0 0 15px rgba(0,0,0,0.2); z-index: 1001;",
+          
+          h5("Visualização do Mapa", style = "text-align: center; margin-top: 0; margin-bottom: 4px;"),
+          
 
-
+          selectInput("variavel_mapa",
+                      label = NULL,
+                    
+                      choices = c(   "Mortes no Trânsito (2023)" = "num_mortes",
+                                     "Média de Mortes no Trânsito (2018-2020)" = "num_mortes_antigo",
+                                     "Redução" = "reducao_estado",
+                                     "Meta Atingida"= "meta_atingida",
+                                     "Meta de Redução" = "meta_reducao"),
+                      selected = "num_mortes")
+        )
+      ),
+      box(
+        width = 12, 
+        height = "650px", 
+        title = "Gráfico de Dispersão: Meta de Redução x Meta Atingida",
+        plotlyOutput('scatterplot_br', height = "600px")
+      ),
+      box(
+        width = 12,
+        title = "Tabela",
+        div(
+          style = "overflow-x: auto; max-height: 700px; width: 100%;",
+          DTOutput('tabela_br')
+        )
+      )
+    )
+  )
+}
