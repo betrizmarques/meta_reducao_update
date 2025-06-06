@@ -5,6 +5,8 @@ require(readxl)
 require(plotly)
 require(leaflet)
 require(DT)
+require(leaflet)
+require(geobr)
 require(scales)
 require(tidyr)
 require(hrbrthemes)
@@ -330,7 +332,6 @@ server <- function(input, output) {
         position = "topleft"
       )
   })
-O
   observe({
     variavel <- input$variavel_mapa
     dados_da_variavel <- estados_com_dados_mortes[[variavel]]
