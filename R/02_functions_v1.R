@@ -1,209 +1,6 @@
 require(tidyverse)
 base_principal <- read.csv('data/base_principal.csv')
 
-
-atingiram_a_meta <- function(base){
-  numero <- base %>% 
-    filter(meta_atingida >= 100) %>% 
-    nrow()
-  return(numero)
-}
-
-
-#Calcular médias do Brasil.
-calculo_br <- function(base) {
-  assign('mortes_br_antigo', sum(base$media_mortes), envir = .GlobalEnv)
-  assign("meta_mortes_br", sum(base$meta_round), envir = .GlobalEnv)
-  assign("mortes_23_br", sum(base$n_mortes_23), envir = .GlobalEnv)
-  assign("var_23_br", mortes_23_br - mortes_br_antigo, envir = .GlobalEnv)
-  assign("reducao_23_br", var_23_br / mortes_br_antigo, envir = .GlobalEnv)
-  assign("meta_reducao_br", (meta_mortes_br - mortes_br_antigo) / mortes_br_antigo, envir = .GlobalEnv)
-  assign("n_muncipios_br", nrow(base), envir = .GlobalEnv)
-  assign("atingiram_meta_br", (atingiram_a_meta(base))/nrow(base), envir = .GlobalEnv)
-}
-
-calculo_br(base = base_principal)
-
-filtrar_por_estado <- function(base, uf){
-  estado <- base %>% 
-    filter(uf == {{uf}})
-  
-  nome_variavel <- paste0("base_filtrada_", tolower(uf))
-  assign(nome_variavel, estado, envir = .GlobalEnv)
-  
-}
-
-
-#Calcular médias para cada estado.
-calculo_estado <- function(base, estado){
-  base_filtrada <- filtrar_por_estado({{base}}, estado)
-  assign(paste0('mortes_antigo_', tolower(estado)), sum(base_filtrada$media_mortes), envir = .GlobalEnv)
-  assign(paste0('meta_mortes_', tolower(estado)), sum(base_filtrada$meta), envir = .GlobalEnv)
-  assign(paste0('mortes_23_', tolower(estado)), sum(base_filtrada$n_mortes_23), envir = .GlobalEnv)
-  assign(paste0('var_23_', tolower(estado)), sum(base_filtrada$n_mortes_23) - sum(base_filtrada$media_mortes), envir = .GlobalEnv)
-  assign(paste0('reducao_23_', tolower(estado)), (sum(base_filtrada$n_mortes_23) - sum(base_filtrada$media_mortes))/sum(base_filtrada$media_mortes), envir = .GlobalEnv)
-  assign(paste0('meta_reducao_', tolower(estado)), (sum(base_filtrada$meta) - sum(base_filtrada$media_mortes))/ sum(base_filtrada$media_mortes), envir = .GlobalEnv)
-  assign(paste0('n_municipios_', tolower(estado)), nrow(base_filtrada), envir = .GlobalEnv)
-  assign(paste0('atingiram_meta_', tolower(estado)), atingiram_a_meta(base_filtrada)/nrow(base_filtrada), envir = .GlobalEnv)
-}
-
-
-#Filtrar dados para a tabela.
-filtrar_dados <- function(base){
-  dados_filtrados <- 
-    base %>% 
-    mutate(meta_percentual = paste0(round(var_perc*100, 2),'%'),
-           reducao_percentual = paste0(round(reducao*100, 2),'%'),
-           media_mortes = round(media_mortes, 2),
-           cor = ifelse(meta_atingida >= 0, "red", "green"),
-           atingiu_meta = ifelse(meta_atingida>=100, "Sim", "Não"),
-           meta_atingida_limite = case_when(
-             meta_atingida > 100 ~ 100,
-             meta_atingida < -100 ~ -100,
-             TRUE ~ meta_atingida
-           ),
-           meta_atingida_limite = paste0(round(meta_atingida_limite, 2),'%')) %>% 
-    select(prioridade,nome_do_municipio, uf, media_mortes, meta_percentual, n_mortes_23, reducao_percentual, meta_atingida_limite, atingiu_meta) %>% 
-    rename('Prioridade' = prioridade,
-           'Município' = nome_do_municipio,
-           'Média de mortes (2018-2020)' = media_mortes,
-           'UF'= uf,
-           'Meta de Redução' = meta_percentual,
-           'Número de mortes (2023)' = n_mortes_23,
-           'Redução/Aumento'= reducao_percentual,
-           'Meta Atingida' = meta_atingida_limite)
-  
-  assign('dados_filtrados', dados_filtrados, envir = .GlobalEnv)
-}
-
-
-
-
-#Plot das capitais
-plot_capitais <- function(municipios, destaque = "SP") {
-  label_br <- round(reducao_23_br * 100)
-  
-  capitais <- c(
-    "Rio Branco", "Maceió", "Macapá", "Manaus", "Salvador",
-    "Fortaleza", "Brasília", "Vitória", "Goiânia", "São Luís",
-    "Cuiabá", "Campo Grande", "Belo Horizonte", "Belém", "João Pessoa",
-    "Curitiba", "Recife", "Teresina", "Rio de Janeiro", "Natal",
-    "Porto Alegre", "Porto Velho", "Boa Vista", "Florianópolis",
-    "São Paulo", "Aracaju", "Palmas"
-  )
-  
-  capitais_base_principal <- municipios %>% 
-    filter(nome_do_municipio %in% capitais, !(X %in% c(2251, 2281, 1140, 3350, 190)))
-  
-  
-  p <- capitais_base_principal %>%
-    mutate(
-      destaque_estado = ifelse(estado_nome == destaque, "Destaque", "Outros"),
-      nome_do_municipio = fct_reorder(nome_do_municipio, reducao, .desc = TRUE)
-    ) %>%
-    ggplot(aes(
-      x = nome_do_municipio,
-      y = reducao,
-      fill = destaque_estado,
-      text = glue(
-        "Município: {nome_do_municipio}<br>",
-        "Redução: {round(reducao * 100)}%"
-      )
-    )) +
-    geom_col() +
-    scale_fill_manual(values = c("Destaque" = "#FF5B5B", "Outros" = "grey60")) +
-    geom_hline(
-      yintercept = reducao_23_br,
-      linetype = "dashed",
-      color = "red"
-    ) +
-    annotate(
-      geom = "text",
-      y = reducao_23_br + 0.10,
-      x = 20,
-      label = glue("Média\n do Brasil: {label_br}%"),
-      size = 2,
-      color = "red"
-    ) +
-    coord_flip() +
-    theme_minimal(base_size = 8) +
-    scale_y_continuous(
-      minor_breaks = NULL,
-      breaks = seq(-0.6, 0.6, 0.1),
-      limits = c(-0.6, 0.6),
-      labels = scales::percent_format(accuracy = 1)
-    ) +
-    labs(
-      y = "Redução / Aumento (%)",
-      x = "Estado",
-      fill = NULL
-    ) +
-    theme(
-      plot.background = element_rect(color = "white", fill = "white"),
-      legend.position = "none"
-    )
-  
- 
-  ggplotly(p, tooltip = "text") %>%
-    layout(margin = list(l = 90))  
-}
-
-#Plot da Redução dos Estados.
-plot_reducao_estados <- function(municipios, destaque = "SP") {
-  label_br <- round(reducao_23_br * 100)
-  
-  dados <- municipios %>%
-    group_by(estado_nome) %>%
-    summarise(var_23 = sum(var_23), mortes = sum(media_mortes)) %>%
-    mutate(
-      perc_var_23 = var_23 / mortes,
-      destaque_estado = ifelse(estado_nome == destaque, "Destaque", "Outros"),
-      estado_nome = fct_reorder(estado_nome, desc(perc_var_23)),
-      texto_tooltip = glue(
-        "Estado: {estado_nome}\nRedução: {round(perc_var_23 * 100, 1)}%"
-      )
-    )
-  
-  g <- ggplot(dados, aes(x = estado_nome, y = perc_var_23, fill = destaque_estado,
-                         text = texto_tooltip)) +
-    geom_col() +
-    scale_fill_manual(values = c("Destaque" = "#FF5B5B", "Outros" = "grey60")) +
-    geom_hline(
-      yintercept = reducao_23_br,
-      linetype = "dashed",
-      color = "red"
-    ) +
-    annotate(
-      geom = "text",
-      y = reducao_23_br + 0.10,
-      x = 20,
-      label = glue("Média\n do Brasil: {label_br}%"),
-      size = 2,
-      color = "red"
-    ) +
-    coord_flip() +
-    theme_minimal(base_size = 8) +
-    scale_y_continuous(
-      minor_breaks = NULL,
-      breaks = seq(-0.6, 0.6, 0.1),
-      limits = c(-0.6, 0.6),
-      labels = scales::percent_format(accuracy = 1)
-    ) +
-    labs(
-      y = "Redução / Aumento (%)",
-      x = "Estado",
-      fill = NULL
-    ) +
-    theme(
-      plot.background = element_rect(color = "white", fill = "white"),
-      legend.position = "none"
-    )
-  
-  ggplotly(g, tooltip = "text")
-}
-
-
-
 #Função para gerar a aba do Dashboard de cada estado.
 gerar_tab_estado <- function(nome_aba, media_antigo, media_23, atingiram_meta,
                              n_municipios, meta_reducao, reducao_23,
@@ -278,7 +75,7 @@ gerar_tab_estado <- function(nome_aba, media_antigo, media_23, atingiram_meta,
     fluidRow(
       column(
         width = 6,
-
+        
         box(
           width = 12,
           title = "Metas de Redução por Estado",
@@ -293,27 +90,231 @@ gerar_tab_estado <- function(nome_aba, media_antigo, media_23, atingiram_meta,
           plotlyOutput(barras_capitais)
         )
       ),
-        box(
-          width = 12, 
-          height = "600px", 
-          title = "Gráfico de Dispersão: Meta de Redução x Meta Atingida",
-          plotlyOutput(scatterplot, height = "550px")
-        ),
-        box(
-          width = 12,
-          title = "Tabela",
-          div(
-            style = "overflow-x: auto; max-height: 600px; width: 100%;",
-            DTOutput(tabela)
-          )
+      box(
+        width = 12, 
+        height = "600px", 
+        title = "Gráfico de Dispersão: Meta de Redução x Meta Atingida",
+        plotlyOutput(scatterplot, height = "550px")
+      ),
+      box(
+        width = 12,
+        title = "Tabela",
+        div(
+          style = "overflow-x: auto; max-height: 700px; width: 100%;",
+          DTOutput(tabela)
         )
       )
     )
+  )
 }
 
+
+
+
+atingiram_a_meta <- function(base){
+  numero <- base %>% 
+    filter(meta_atingida >= 100) %>% 
+    nrow()
+  return(numero)
+}
+atingiram_a_meta(base_principal)
+
+#Calcular médias do Brasil.
+calculo_br <- function(base) {
+  assign('mortes_antigo_br', sum(base$media_mortes), envir = .GlobalEnv)
+  assign("meta_mortes_br", sum(base$meta), envir = .GlobalEnv)
+  assign("mortes_23_br", sum(base$n_mortes_23), envir = .GlobalEnv)
+  assign("var_23_br", mortes_23_br - mortes_antigo_br, envir = .GlobalEnv)
+  assign("reducao_23_br", var_23_br / mortes_antigo_br, envir = .GlobalEnv)
+  assign("meta_reducao_br", (meta_mortes_br - mortes_antigo_br) / mortes_antigo_br, envir = .GlobalEnv)
+  assign("n_municipios_br", nrow(base), envir = .GlobalEnv)
+  assign("atingiram_meta_br", (atingiram_a_meta(base))/nrow(base), envir = .GlobalEnv)
+}
+
+calculo_br(base = base_principal)
+
+filtrar_por_estado <- function(base, uf){
+  estado <- base %>% 
+    filter(uf == {{uf}})
+  
+  nome_variavel <- paste0("base_filtrada_", tolower(uf))
+  assign(nome_variavel, estado, envir = .GlobalEnv)
+  
+}
+
+
+#Calcular médias para cada estado.
+calculo_estado <- function(base, estado){
+  base_filtrada <- filtrar_por_estado({{base}}, estado)
+  assign(paste0('mortes_antigo_', tolower(estado)), sum(base_filtrada$media_mortes), envir = .GlobalEnv)
+  assign(paste0('meta_mortes_', tolower(estado)), sum(base_filtrada$meta), envir = .GlobalEnv)
+  assign(paste0('mortes_23_', tolower(estado)), sum(base_filtrada$n_mortes_23), envir = .GlobalEnv)
+  assign(paste0('var_23_', tolower(estado)), sum(base_filtrada$n_mortes_23) - sum(base_filtrada$media_mortes), envir = .GlobalEnv)
+  assign(paste0('reducao_23_', tolower(estado)), (sum(base_filtrada$n_mortes_23) - sum(base_filtrada$media_mortes))/sum(base_filtrada$media_mortes), envir = .GlobalEnv)
+  assign(paste0('meta_reducao_', tolower(estado)), (sum(base_filtrada$meta) - sum(base_filtrada$media_mortes))/ sum(base_filtrada$media_mortes), envir = .GlobalEnv)
+  assign(paste0('n_municipios_', tolower(estado)), nrow(base_filtrada), envir = .GlobalEnv)
+  assign(paste0('atingiram_meta_', tolower(estado)), atingiram_a_meta(base_filtrada)/nrow(base_filtrada), envir = .GlobalEnv)
+}
+
+
+#Filtrar dados para a tabela.
+filtrar_dados <- function(base){
+  dados_filtrados <- 
+    base %>% 
+    mutate(meta_percentual = paste0(round(var_perc*100, 2),'%'),
+           reducao_percentual = paste0(round(reducao*100, 2),'%'),
+           media_mortes = round(media_mortes, 2),
+           cor = ifelse(meta_atingida >= 0, "red", "green"),
+           atingiu_meta = ifelse(meta_atingida>=100, "Sim", "Não"),
+           meta_atingida_limite = case_when(
+             meta_atingida > 100 ~ 100,
+             meta_atingida < -100 ~ -100,
+             TRUE ~ meta_atingida
+           ),
+           meta_atingida_limite = paste0(round(meta_atingida_limite, 2),'%')) %>% 
+    select(prioridade,nome_do_municipio, uf, media_mortes, meta_percentual, n_mortes_23, frota_23, populacao_23, reducao_percentual, meta_atingida_limite, atingiu_meta) %>% 
+    rename('Prioridade' = prioridade,
+           'Município' = nome_do_municipio,
+           'Média de mortes (2018-2020)' = media_mortes,
+           'UF'= uf,
+           'Meta de Redução' = meta_percentual,
+           'Número de mortes (2023)' = n_mortes_23,
+           'Frota (2023)' = frota_23,
+           'População (2023)' = populacao_23,
+           'Redução/Aumento'= reducao_percentual,
+           'Meta Atingida' = meta_atingida_limite)
+  
+  assign('dados_filtrados', dados_filtrados, envir = .GlobalEnv)
+}
+
+
+
+
+#Plot das
+plot_capitais <- function(municipios, destaque = "SP") {
+  label_br <- round(reducao_23_br * 100)
+  
+  capitais <- c(
+    "Rio Branco", "Maceió", "Macapá", "Manaus", "Salvador",
+    "Fortaleza", "Brasília", "Vitória", "Goiânia", "São Luís",
+    "Cuiabá", "Campo Grande", "Belo Horizonte", "Belém", "João Pessoa",
+    "Curitiba", "Recife", "Teresina", "Rio de Janeiro", "Natal",
+    "Porto Alegre", "Porto Velho", "Boa Vista", "Florianópolis",
+    "São Paulo", "Aracaju", "Palmas"
+  )
+  
+  capitais_base_principal <- municipios %>% 
+    filter(nome_do_municipio %in% capitais, !(X %in% c(2251, 2281, 1140, 3350, 190)))
+  
+  
+  p <- capitais_base_principal %>%
+    mutate(
+      destaque_estado = ifelse(estado_nome == destaque, "Destaque", "Outros"),
+      nome_do_municipio = fct_reorder(nome_do_municipio, reducao, .desc = TRUE)
+    ) %>%
+    ggplot(aes(
+      x = nome_do_municipio,
+      y = reducao,
+      fill = destaque_estado,
+      text = glue(
+        "Município: {nome_do_municipio}<br>",
+        "Redução: {round(reducao * 100, 2)}%"
+      )
+    )) +
+    geom_col() +
+    scale_fill_manual(values = c("Destaque" = "#FF5B5B", "Outros" = "grey60")) +
+    geom_hline(
+      yintercept = reducao_23_br,
+      linetype = "dashed",
+      color = "red"
+    ) +
+    annotate(
+      geom = "text",
+      y = reducao_23_br + 0.10,
+      x = 20,
+      label = glue("Média\n do Brasil: {label_br}%"),
+      size = 2,
+      color = "red"
+    ) +
+    coord_flip() +
+    theme_minimal(base_size = 8) +
+    scale_y_continuous(
+      minor_breaks = NULL,
+      breaks = seq(-0.6, 0.6, 0.1),
+      limits = c(-0.6, 0.6),
+      labels = scales::percent_format(accuracy = 1)
+    ) +
+    labs(
+      y = "Redução / Aumento (%)",
+      x = "Estado",
+      fill = NULL
+    ) +
+    theme(
+      plot.background = element_rect(color = "white", fill = "white"),
+      legend.position = "none"
+    )
+  
+ 
+  ggplotly(p, tooltip = "text") %>%
+    layout(margin = list(l = 90))  
+}
+
+#Plot da Redução dos Estados.
+plot_reducao_estados <- function(municipios, destaque = "SP") {
+  label_br <- round(reducao_23_br * 100)
+  
+  dados <- municipios %>%
+    group_by(estado_nome) %>%
+    summarise(var_23 = sum(var_23), mortes = sum(media_mortes)) %>%
+    mutate(
+      perc_var_23 = var_23 / mortes,
+      destaque_estado = ifelse(estado_nome == destaque, "Destaque", "Outros"),
+      estado_nome = fct_reorder(estado_nome, desc(perc_var_23)),
+      texto_tooltip = glue(
+        "Estado: {estado_nome}\nRedução: {round(perc_var_23 * 100, 2)}%"
+      )
+    )
+  
+  g <- ggplot(dados, aes(x = estado_nome, y = perc_var_23, fill = destaque_estado,
+                         text = texto_tooltip)) +
+    geom_col() +
+    scale_fill_manual(values = c("Destaque" = "#FF5B5B", "Outros" = "grey60")) +
+    geom_hline(
+      yintercept = reducao_23_br,
+      linetype = "dashed",
+      color = "red"
+    ) +
+    annotate(
+      geom = "text",
+      y = reducao_23_br + 0.10,
+      x = 20,
+      label = glue("Média\n do Brasil: {label_br}%"),
+      size = 2,
+      color = "red"
+    ) +
+    coord_flip() +
+    theme_minimal(base_size = 8) +
+    scale_y_continuous(
+      minor_breaks = NULL,
+      breaks = seq(-0.6, 0.6, 0.1),
+      limits = c(-0.6, 0.6),
+      labels = scales::percent_format(accuracy = 1)
+    ) +
+    labs(
+      y = "Redução / Aumento (%)",
+      x = "Estado",
+      fill = NULL
+    ) +
+    theme(
+      plot.background = element_rect(color = "white", fill = "white"),
+      legend.position = "none"
+    )
+  
+  ggplotly(g, tooltip = "text")
+}
+
+
 #Tabela de Redução ou aumento.
-
-
 
 base_graficos <- function(base){
   base %>% 
@@ -328,10 +329,10 @@ base_graficos <- function(base){
       tooltip = paste0(
         "Município: ", nome_do_municipio, "<br>",
         "UF: ", uf, "<br>",
-        "Meta de Redução: ", round(var_perc*100, 1), "%<br>",
+        "Meta de Redução: ", round(var_perc*100, 2), "%<br>",
         tipo, round(reducao*100, 1), "%<br>",
-        "Meta Atingida: ", round(meta_atingida_limite, 1), "%", "<br>",
-        'Média de Mortes (2018-2020): ', round(media_mortes), "<br>",
+        "Meta Atingida: ", round(meta_atingida_limite, 2), "%", "<br>",
+        'Média de Mortes (2018-2020): ', round(media_mortes, 2), "<br>",
         'Número de Mortes (2023): ', n_mortes_23
       )
     )
@@ -361,16 +362,16 @@ tabela_reducao_aumento <- function(dados_filtrados) {
     options = list(
       dom = 'ft',
       paging = F, 
-      scrollY = "400px",
+      scrollY = "500px",
       scrollCollapse = T,
       autoWidth = TRUE,
       initComplete = JS(
         "function(settings, json) {",
         "  this.api().columns().every(function(index) {",
-        "    if(index === 8) {", 
+        "    if(index === 10) {", 
         "      var column = this;",
         "      var header = $(column.header()).empty();",
-        "      header.append('<div style=\"font-weight:bold; font-size:14px;\">Atingiu Meta? </div>');",
+        "      header.append('<div style=\"font-weight:bold; font-size:16px;\">Atingiu a Meta? </div>');",
         "      var select = $('<select><option value=\"\">Mostrar todos</option></select>')",
         "        .appendTo(header)",
         "        .on('change', function() {",
@@ -400,16 +401,12 @@ capitais <- c(
   "São Paulo", "Aracaju", "Palmas"
 )
 
-capitais_base_principal <- base_principal %>% 
-  filter(nome_do_municipio %in% capitais, !(X %in% c(2251, 2281, 1140, 3350, 190)))
-plot_capitais(capitais_base_principal, destaque =  "Acre")
-
 
 #Scatterplot
 grafico_meta_atingida <- function(base_graficos) {
   plot_ly(
     data = base_graficos,
-    x = ~var_perc,
+    x = ~var_perc*100,
     y = ~meta_atingida_limite,
     type = 'scatter',
     mode = 'markers',
@@ -426,7 +423,9 @@ grafico_meta_atingida <- function(base_graficos) {
         showgrid = TRUE,
         zeroline = TRUE,
         zerolinewidth = 1,
-        zerolinecolor = "#999"
+        zerolinecolor = "#999",
+        tickvals = seq(-100, 100, 20),
+        ticktext = paste0(seq(-100, 100, 20), "%")
       ),
       yaxis = list(
         title = "Percentual da Meta Atingida (%)",
@@ -438,7 +437,7 @@ grafico_meta_atingida <- function(base_graficos) {
         zerolinecolor = "#999",
         range = c(-105, 105),
         tickvals = seq(-100, 100, 20),
-        ticktext = seq(-100, 100, 20)
+        ticktext = paste0(seq(-100, 100, 20), '%')
       ),
       plot_bgcolor = "#f9f9f9",
       paper_bgcolor = "#ffffff",
@@ -446,4 +445,7 @@ grafico_meta_atingida <- function(base_graficos) {
       showlegend = FALSE
     )
 }
+
+
+
 
